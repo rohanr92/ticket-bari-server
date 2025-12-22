@@ -301,6 +301,29 @@ async function run() {
 
 
 
+    app.patch('/booking-ticket-pending/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const updatedBookingTicket = req.body;
+
+        const result = await buyTicketColl.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedBookingTicket }
+        );
+
+        res.send({
+          success: true,
+          modifiedCount: result.modifiedCount,
+          result
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Update failed" });
+      }
+    });
+
+
+
 //  app.get('/booking-ticket-pending', async (req, res) => {
 //   try {
 //     const email = req.query.email;
