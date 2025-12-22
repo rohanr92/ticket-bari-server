@@ -1,18 +1,20 @@
-const express = require('express');
-const cors = require('cors');
-const app = express();
-const port = process.env.PORT || 3000;
-app.use(cors());
+const express = require('express')
+var cors = require('cors')
+const app = express()
+const port = process.env.PORT || 3000
+app.use(cors())
 app.use(express.json());
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-// =================== MongoDB Connection ===================
+// ================= MongoDB URI with hardcoded user/pass =================
+const uri = `mongodb+srv://rohan92:IlovemymotheR92@ticketbari.y5ynq6m.mongodb.net/?appName=TicketBari`;
+
+// ================= MongoDB Connection Cache =================
 let cachedClient = null;
 
 async function getMongoClient() {
   if (cachedClient) return cachedClient;
 
-  const uri = "mongodb+srv://rohan92:IlovemymotheR92@ticketbari.y5ynq6m.mongodb.net/?appName=TicketBari";
   const client = new MongoClient(uri, {
     serverApi: {
       version: ServerApiVersion.v1,
@@ -26,12 +28,12 @@ async function getMongoClient() {
   return cachedClient;
 }
 
-// =================== Base Route ===================
+// ================= Base Route =================
 app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
+  res.send('Hello World!')
+})
 
-// =================== Main Run Function ===================
+// ================= Main Run Function =================
 async function run() {
   try {
     const client = await getMongoClient();
@@ -45,7 +47,7 @@ async function run() {
     const buyTicketDB = client.db('buyTicketDB');
     const buyTicketColl = buyTicketDB.collection('buyTicketColl');
 
-    // ================== USERS ==================
+    // ============== USERS ==============
     app.post('/users-coll', async (req, res) => {
       const user = req.body;
       if (!user) return res.status(400).send({ message: 'No user data received' });
@@ -77,7 +79,6 @@ async function run() {
 
         const cursor = usersColl.find(query);
         const allValues = await cursor.toArray();
-
         res.send(allValues);
       } catch (error) {
         console.error(error);
@@ -85,7 +86,7 @@ async function run() {
       }
     });
 
-    // ================== TICKETS ==================
+    // ============== TICKETS ==============
     app.post('/ticket-coll', async (req, res) => {
       const info = req.body;
       if (!info) return res.status(400).send({ message: 'No data received' });
@@ -101,7 +102,6 @@ async function run() {
 
         const cursor = ticketColl.find(query);
         const allValues = await cursor.toArray();
-
         res.send(allValues);
       } catch (error) {
         console.error(error);
@@ -188,7 +188,7 @@ async function run() {
       }
     });
 
-    // ================== BOOKINGS ==================
+    // ============== BOOKINGS ==============
     app.post('/booking-ticket', async (req, res) => {
       const data = req.body;
       if (!data) return res.status(400).send({ message: 'No data received' });
@@ -204,7 +204,6 @@ async function run() {
 
         const cursor = buyTicketColl.find(query);
         const allValues = await cursor.toArray();
-
         res.send(allValues);
       } catch (error) {
         console.error(error);
@@ -246,13 +245,16 @@ async function run() {
     });
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
+    app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`)
+});
+
   } finally {
-    // Do not close client to keep caching for Vercel
+    // Do not close client, cached for Vercel
   }
 }
 
 run().catch(console.dir);
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+
