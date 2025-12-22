@@ -351,7 +351,6 @@ app.get('/booking-ticket-pending', async (req, res) => {
 
 
 
-
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
 
