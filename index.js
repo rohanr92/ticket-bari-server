@@ -6,8 +6,11 @@ app.use(cors())
 app.use(express.json());
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
+
 // ================= MongoDB URI with hardcoded user/pass =================
 const uri = `mongodb+srv://rohan92:IlovemymotheR92@ticketbari.y5ynq6m.mongodb.net/?appName=TicketBari`;
+
+const stripe = require('stripe')('sk_test_51ShPbtC3Eh2jVY1mzXw0iVq2FeI0bXmXdb29OOZpzgaUtaa7bpzjVBVO1P63egwnCfXWGK3FSoUhyH4xTHvqJpvj00tp8aaf08');
 
 // ================= MongoDB Connection Cache =================
 let cachedClient = null;
@@ -243,6 +246,59 @@ async function run() {
         res.status(500).send({ message: "Failed to fetch tickets" });
       }
     });
+
+    // Stripe Integrate
+
+
+ app.post('/create-checkout-session', async (req, res) => {
+  try {
+    const {
+      title,
+      totalPrice,
+      quantity,
+      userEmail,
+      imageUrl,
+      bookingId,
+    } = req.body;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+
+      customer_email: userEmail,
+
+      line_items: [
+        {
+          price_data: {
+            currency: 'bdt',
+            product_data: {
+              name: title,
+              images: imageUrl ? [imageUrl] : [],
+            },
+            unit_amount: Math.round((totalPrice / quantity) * 100),
+          },
+          quantity: quantity,
+        },
+      ],
+
+      metadata: {
+        bookingId: bookingId,
+        userEmail: userEmail,
+      },
+
+      success_url: `http://localhost:5173/payment-success?bookingId=${bookingId}`,
+      cancel_url: `http://localhost:5173/payment-cancel`,
+    });
+
+    res.send({ url: session.url });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: 'Stripe session failed' });
+  }
+});
+
+
+    
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
