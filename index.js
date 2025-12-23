@@ -5,12 +5,12 @@ const port = process.env.PORT || 3000
 app.use(cors())
 app.use(express.json());
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-
+require('dotenv').config();
 
 // ================= MongoDB URI with hardcoded user/pass =================
-const uri = `mongodb+srv://rohan92:IlovemymotheR92@ticketbari.y5ynq6m.mongodb.net/?appName=TicketBari`;
+const uri = process.env.MONGO_URI;
 
-const stripe = require('stripe')('sk_test_51ShPbtC3Eh2jVY1mzXw0iVq2FeI0bXmXdb29OOZpzgaUtaa7bpzjVBVO1P63egwnCfXWGK3FSoUhyH4xTHvqJpvj00tp8aaf08');
+const stripe = require('stripe')(process.env.STRIPE_KEY);
 
 // ================= MongoDB Connection Cache =================
 let cachedClient = null;
