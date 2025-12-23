@@ -50,6 +50,9 @@ async function run() {
     const buyTicketDB = client.db('buyTicketDB');
     const buyTicketColl = buyTicketDB.collection('buyTicketColl');
 
+    const paymentDB = client.db('paymentDB');
+    const paymentColl = paymentDB.collection('paymentColl');
+
     // ============== USERS ==============
     app.post('/users-coll', async (req, res) => {
       const user = req.body;
@@ -284,10 +287,11 @@ async function run() {
       metadata: {
         bookingId: bookingId,
         userEmail: userEmail,
+        ticketName: title,
       },
 
-      success_url: `http://localhost:5173/payment-success?bookingId=${bookingId}`,
-      cancel_url: `http://localhost:5173/payment-cancel`,
+      success_url: `http://localhost:5173/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:5173/dashboard/payment-cancel`,
     });
 
     res.send({ url: session.url });
@@ -297,6 +301,67 @@ async function run() {
   }
 });
 
+
+app.patch('/payment-success', async (req, res) => {
+  try {
+    const sessionId = req.query.session_id;
+
+    if (!sessionId) return res.status(400).send({ success: false, message: "session_id is required" });
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status === 'paid') {
+      const bookingId = session.metadata.bookingId;
+
+      // Update ticket payment status
+      const ticketQuery = { _id: new ObjectId(bookingId) };
+      const ticketUpdate = { $set: { paymentStatus: 'paid' } };
+      const resultTicket = await buyTicketColl.updateOne(ticketQuery, ticketUpdate);
+
+      // Save payment info
+      const payment = {
+        amount: session.amount_total / 100,
+        currency: session.currency,
+        bookingCustomerEmail: session.customer_email,
+        ticketId: bookingId,
+        ticketName: session.metadata.ticketName,
+        transactionId: session.payment_intent,
+        paymentStatus: session.payment_status,
+        paymentGateway: session.payment_method_types,
+        paidAt: new Date()
+      };
+
+      const resultPayment = await paymentColl.insertOne(payment);
+
+      return res.send({
+        success: true,
+        message: "Payment saved successfully",
+        modifyTicket: resultTicket,
+        paymentInfo: resultPayment
+      });
+    } else {
+      return res.status(400).send({ success: false, message: "Payment not completed" });
+    }
+  } catch (error) {
+    console.error("Payment success error:", error);
+    return res.status(500).send({ success: false, message: "Server error" });
+  }
+});
+
+
+
+app.get('/payments', async (req, res) => {
+  try {
+    const email = req.query.email;
+    if (!email) return res.status(400).send({ success: false, message: "Email is required" });
+
+    const payments = await paymentColl.find({ bookingCustomerEmail: email }).toArray();
+    res.send({ success: true, payments });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ success: false, message: "Failed to fetch payments" });
+  }
+});
 
     
 
